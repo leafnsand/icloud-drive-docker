@@ -51,7 +51,7 @@ jobs:
           context: ./
           file: ./Dockerfile
           push: true
-          platforms: linux/386,linux/amd64, linux/arm64, linux/arm/7
+          platforms: linux/amd64
           tags: "leafnsand/icloud-drive:latest"
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
