@@ -7,7 +7,7 @@ import time
 
 from icloudpy import exceptions
 
-from src import LOGGER, config_parser
+from src import LOGGER, UID, GID, config_parser
 
 from tzlocal import get_localzone
 
@@ -22,10 +22,8 @@ def photo_wanted(photo, extensions):
     return False
 
 
-def generate_file_name(photo, file_size, destination_path):
+def generate_file_name(photo, file_size, destination_path, folder_structure):
     """Generate full path to file."""
-    folder_structure = "{:%Y-%m-%d}"
-    
     try:
         filedate = photo.added_date.astimezone(get_localzone())
     except (ValueError, OSError):
@@ -33,9 +31,13 @@ def generate_file_name(photo, file_size, destination_path):
         filedate = photo.added_date
         
     foldername = folder_structure.format(filedate)
+    folderpath = os.path.join(destination_path, foldername)
+    if not os.path.exists(folderpath):
+        os.makedirs(folderpath)
+        os.chown(folderpath, UID, GID)
     name, extension = photo.filename.rsplit(".", 1)
     filename = photo.filename if file_size == "original" else f'{"_".join([name, file_size])}.{extension}'
-    file_path = os.path.join(destination_path, foldername, filename)
+    file_path = os.path.join(folderpath, filename)
 
     return file_path
 
@@ -64,6 +66,7 @@ def download_photo(photo, file_size, destination_path):
         download = photo.download(file_size)
         with open(destination_path, "wb") as file_out:
             shutil.copyfileobj(download.raw, file_out)
+            os.chown(file_out, UID, GID)
         local_modified_time = time.mktime(photo.added_date.timetuple())
         os.utime(destination_path, (local_modified_time, local_modified_time))
     except (exceptions.ICloudPyAPIResponseException, FileNotFoundError, Exception) as e:
@@ -72,10 +75,10 @@ def download_photo(photo, file_size, destination_path):
     return True
 
 
-def process_photo(photo, file_size, destination_path):
+def process_photo(photo, file_size, destination_path, folder_structure):
     """Process photo details."""
     photo_path = generate_file_name(
-        photo=photo, file_size=file_size, destination_path=destination_path
+        photo=photo, file_size=file_size, destination_path=destination_path, folder_structure=folder_structure
     )
     if file_size not in photo.versions:
         LOGGER.warning(
@@ -88,15 +91,16 @@ def process_photo(photo, file_size, destination_path):
     return True
 
 
-def sync_album(album, destination_path, file_sizes, extensions=None):
+def sync_album(album, destination_path, folder_structure, file_sizes, extensions=None):
     """Sync given album."""
-    if album is None or destination_path is None or file_sizes is None:
+    if album is None or destination_path is None or folder_structure is None or file_sizes is None:
         return None
     os.makedirs(destination_path, exist_ok=True)
+    os.chown(destination_path, UID, GID)
     for photo in album:
         if photo_wanted(photo, extensions):
             for file_size in file_sizes:
-                process_photo(photo, file_size, destination_path)
+                process_photo(photo, file_size, destination_path, folder_structure)
         else:
             LOGGER.debug(f"Skipping the unwanted photo {photo.filename}.")
     for subalbum in album.subalbums:
@@ -113,18 +117,21 @@ def sync_photos(config, photos):
     """Sync all photos."""
     destination_path = config_parser.prepare_photos_destination(config=config)
     filters = config_parser.get_photos_filters(config=config)
+    folder_structure = config_parser.get_photos_folder_structure(config=config)
     if filters["albums"]:
         for album in iter(filters["albums"]):
             sync_album(
                 album=photos.albums[album],
                 destination_path=os.path.join(destination_path, album),
+                folder_structure=folder_structure,
                 file_sizes=filters["file_sizes"],
                 extensions=filters["extensions"],
             )
     else:
         sync_album(
             album=photos.all,
-            destination_path=os.path.join(destination_path, "all"),
+            destination_path=destination_path,
+            folder_structure=folder_structure,
             file_sizes=filters["file_sizes"],
             extensions=filters["extensions"],
         )
