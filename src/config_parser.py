@@ -327,6 +327,63 @@ def get_photos_filters(config):
     return photos_filters
 
 
+def get_photos_folder_structure(config):
+    """Return photos folder_structure from config."""
+    photos_folder_structure = "{:%Y-%m-%d}"
+    config_path = ["photos", "folder_structure"]
+    if not traverse_config_path(config=config, config_path=config_path):
+        LOGGER.warning(
+            f"Warning: folder_structure is not found in {config_path_to_string(config_path)}."
+            + f" Use default {photos_folder_structure}."
+        )
+    else:
+        photos_folder_structure = get_config_value(
+            config=config, config_path=config_path
+        )
+        LOGGER.debug(
+            f"Photo folder_structure={photos_folder_structure}."
+        )
+    return photos_folder_structure
+
+
+def get_uid(config):
+    """Return uid from config."""
+    uid = 0
+    config_path = ["app", "uid"]
+    if not traverse_config_path(config=config, config_path=config_path):
+        LOGGER.warning(
+            f"Warning: uid is not found in {config_path_to_string(config_path)}."
+            + f" Use default {uid}."
+        )
+    else:
+        uid = get_config_value(
+            config=config, config_path=config_path
+        )
+        LOGGER.debug(
+            f"Save file uid={uid}."
+        )
+    return uid
+
+
+def get_gid(config):
+    """Return gid from config."""
+    gid = 0
+    config_path = ["app", "gid"]
+    if not traverse_config_path(config=config, config_path=config_path):
+        LOGGER.warning(
+            f"Warning: gid is not found in {config_path_to_string(config_path)}."
+            + f" Use default {gid}."
+        )
+    else:
+        gid = get_config_value(
+            config=config, config_path=config_path
+        )
+        LOGGER.debug(
+            f"Save file gid={gid}."
+        )
+    return gid
+
+
 def get_region(config):
     """Return region from config."""
     region = "global"
