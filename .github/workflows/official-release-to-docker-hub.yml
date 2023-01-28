@@ -26,7 +26,7 @@ jobs:
       - name: Prepare
         id: prep
         run: |
-          DOCKER_IMAGE=mandarons/icloud-drive
+          DOCKER_IMAGE=leafnsand/icloud-drive
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
           fi
