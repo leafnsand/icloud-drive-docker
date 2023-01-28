@@ -66,7 +66,6 @@ def download_photo(photo, file_size, destination_path):
         download = photo.download(file_size)
         with open(destination_path, "wb") as file_out:
             shutil.copyfileobj(download.raw, file_out)
-            os.chown(file_out, UID, GID)
         local_modified_time = time.mktime(photo.added_date.timetuple())
         os.utime(destination_path, (local_modified_time, local_modified_time))
     except (exceptions.ICloudPyAPIResponseException, FileNotFoundError, Exception) as e:
@@ -88,6 +87,7 @@ def process_photo(photo, file_size, destination_path, folder_structure):
     if photo_exists(photo, file_size, photo_path):
         return False
     download_photo(photo, file_size, photo_path)
+    os.chown(photo_path, UID, GID)
     return True
 
 
