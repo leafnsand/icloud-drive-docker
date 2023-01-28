@@ -26,11 +26,10 @@ jobs:
       - name: Prepare
         id: prep
         run: |
-          DOCKER_IMAGE=leafnsand/icloud-drive
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
           fi
-          TAGS="${DOCKER_IMAGE}:${VERSION},${DOCKER_IMAGE}:latest"
+          TAGS="leafnsand/icloud-drive:${VERSION},leafnsand/icloud-drive:latest"
           echo "${TAGS}"
           echo ::set-output name=tags::${TAGS}
       - name: Cache Docker layers
