@@ -9,6 +9,8 @@ from icloudpy import exceptions
 
 from src import LOGGER, config_parser
 
+from tzlocal import get_localzone
+
 
 def photo_wanted(photo, extensions):
     """Check if photo is wanted based on extension."""
@@ -22,21 +24,20 @@ def photo_wanted(photo, extensions):
 
 def generate_file_name(photo, file_size, destination_path):
     """Generate full path to file."""
-    filename = photo.filename
-    name, extension = filename.rsplit(".", 1)
-    file_path = os.path.join(destination_path, filename)
-    file_size_path = os.path.join(
-        destination_path, f'{"__".join([name, file_size])}.{extension}'
-    )
-    file_size_id_path = os.path.join(
-        destination_path,
-        f'{"__".join([name, file_size, base64.urlsafe_b64encode(photo.id.encode()).decode()])}.{extension}',
-    )
-    if os.path.isfile(file_path):
-        os.rename(file_path, file_size_id_path)
-    if os.path.isfile(file_size_path):
-        os.rename(file_size_path, file_size_id_path)
-    return file_size_id_path
+    folder_structure = "{:%Y-%m-%d}"
+    
+    try:
+        filedate = photo.added_date.astimezone(get_localzone())
+    except (ValueError, OSError):
+        LOGGER.error(f"Could not convert photo created date to local timezone ({photo.added_date})")
+        filedate = photo.added_date
+        
+    foldername = folder_structure.format(filedate)
+    name, extension = photo.filename.rsplit(".", 1)
+    filename = photo.filename if file_size == "original" else f'{"_".join([name, file_size])}.{extension}'
+    file_path = os.path.join(destination_path, foldername, filename)
+
+    return file_path
 
 
 def photo_exists(photo, file_size, local_path):
