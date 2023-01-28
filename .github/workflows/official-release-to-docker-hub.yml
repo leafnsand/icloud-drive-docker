@@ -26,13 +26,7 @@ jobs:
       - name: Prepare
         id: prep
         run: |
-          DOCKER_IMAGE=leafnsand/icloud-drive
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
-            VERSION=${GITHUB_REF#refs/tags/v}
-          fi
-          TAGS="${DOCKER_IMAGE}:${VERSION},${DOCKER_IMAGE}:latest"
-          echo "${TAGS}"
-          echo ::set-output name=tags::${TAGS}
+          echo "skip"
       - name: Cache Docker layers
         uses: actions/cache@v3
         with:
@@ -58,6 +52,6 @@ jobs:
           file: ./Dockerfile
           push: true
           platforms: linux/386,linux/amd64, linux/arm64, linux/arm/7
-          tags: ${{ steps.prep.outputs.tags }}
+          tags: "leafnsand/icloud-drive:latest"
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
