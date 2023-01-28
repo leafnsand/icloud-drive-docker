@@ -86,8 +86,8 @@ def process_photo(photo, file_size, destination_path, folder_structure):
         return False
     if photo_exists(photo, file_size, photo_path):
         return False
-    download_photo(photo, file_size, photo_path)
-    os.chown(photo_path, UID, GID)
+    if download_photo(photo, file_size, photo_path):
+        os.chown(photo_path, UID, GID)
     return True
 
 
