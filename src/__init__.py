@@ -60,6 +60,20 @@ def get_logger_config(config):
     return logger_config
 
 
+def get_uid_config(config):
+    """Get uid from config."""
+    if "uid" not in config["app"]:
+        return 0
+    return int(config["app"]["uid"])
+
+
+def get_gid_config(config):
+    """Get gid from config."""
+    if "gid" not in config["app"]:
+        return 0
+    return int(config["app"]["gid"])
+
+
 def log_handler_exists(logger, handler_type, **kwargs):
     """Check for existing log handler."""
     for handler in logger.handlers:
@@ -135,3 +149,5 @@ def get_logger():
 
 
 LOGGER = get_logger()
+UID = get_uid_config(config=read_config())
+GID = get_gid_config(config=read_config())
