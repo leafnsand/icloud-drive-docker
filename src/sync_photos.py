@@ -25,10 +25,10 @@ def photo_wanted(photo, extensions):
 def generate_file_name(photo, file_size, destination_path, folder_structure):
     """Generate full path to file."""
     try:
-        filedate = photo.added_date.astimezone(get_localzone())
+        filedate = photo.created.astimezone(get_localzone())
     except (ValueError, OSError):
-        LOGGER.error(f"Could not convert photo created date to local timezone ({photo.added_date})")
-        filedate = photo.added_date
+        LOGGER.error(f"Could not convert photo created date to local timezone ({photo.created})")
+        filedate = photo.created
         
     foldername = folder_structure.format(filedate)
     folderpath = os.path.join(destination_path, foldername)
