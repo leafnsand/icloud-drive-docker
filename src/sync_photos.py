@@ -38,6 +38,16 @@ def generate_file_name(photo, file_size, destination_path, folder_structure):
     name, extension = photo.filename.rsplit(".", 1)
     filename = photo.filename if file_size == "original" else f'{"_".join([name, file_size])}.{extension}'
     file_path = os.path.join(folderpath, filename)
+    
+    for i in range(100):
+        if os.path.isfile(file_path):
+            filename = f'{name}_{i}.{extension}' if file_size == "original" else f'{"_".join([name, file_size, i])}.{extension}'
+            file_path = os.path.join(folderpath, filename)
+        else:
+            break
+            
+    if os.path.isfile(file_path):
+        LOGGER.error(f"Failed to generate file name, too many duplicated, will overwrite this ({file_path})")
 
     return file_path
 
@@ -49,11 +59,27 @@ def photo_exists(photo, file_size, local_path):
         remote_size = int(photo.versions[file_size]["size"])
         if local_size == remote_size:
             LOGGER.debug(f"No changes detected. Skipping the file {local_path} ...")
+            if not os.path.exist(local_path + ".icloud"):
+                save_photo_metadata(photo, local_path)
             return True
         else:
-            LOGGER.debug(
-                f"Change detected: local_file_size is {local_size} and remote_file_size is {remote_size}."
-            )
+            if os.path.isfile(local_path + ".icloud"):
+                try:
+                    with open(local_path + ".icloud", "r") as local_metadata:
+                        local_id = local_metadata.read()
+                except:
+                    LOGGER.error(f"Failed to read photo metadata {local_path}")
+                    local_id = "invalid"
+                    
+                if local_id == photo.id:
+                    LOGGER.debug(
+                        f"Change detected: local_file_size is {local_size} and remote_file_size is {remote_size}."
+                    )
+                else:
+                    LOGGER.warning(f"Duplicated path {local_path}")
+                    return True
+            else:
+                LOGGER.debug(f"Metadata not exist {local_path}.")
         return False
 
 
@@ -71,7 +97,20 @@ def download_photo(photo, file_size, destination_path):
     except (exceptions.ICloudPyAPIResponseException, FileNotFoundError, Exception) as e:
         LOGGER.error(f"Failed to download {destination_path}: {str(e)}")
         return False
+    try:
+        os.chown(destination_path, UID, GID)
+    except:
+        LOGGER.error(f"Failed to chown {destination_path}")
     return True
+
+
+def save_photo_metadata(photo, destination_path):
+    try:
+        with open(destination_path + ".icloud", "w") as file:
+            file.write(photo.id)
+        os.chown(destination_path + ".icloud", UID, GID)
+    except:
+        LOGGER.error(f"Failed to save metadata {destination_path}")
 
 
 def process_photo(photo, file_size, destination_path, folder_structure):
@@ -87,7 +126,7 @@ def process_photo(photo, file_size, destination_path, folder_structure):
     if photo_exists(photo, file_size, photo_path):
         return False
     if download_photo(photo, file_size, photo_path):
-        os.chown(photo_path, UID, GID)
+        save_photo_metadata(photo, photo_path)
     return True
 
 
