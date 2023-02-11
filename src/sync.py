@@ -10,9 +10,9 @@ from src import (
     DEFAULT_COOKIE_DIRECTORY,
     ENV_ICLOUD_PASSWORD_KEY,
     LOGGER,
+    CONFIG,
     config_parser,
     notify,
-    read_config,
     sync_drive,
     sync_photos,
 )
@@ -51,7 +51,7 @@ def sync():
     photos_sync_interval = 0
     sleep_for = 10
     while True:
-        config = read_config()
+        config = CONFIG
         username = config_parser.get_username(config=config)
         if username:
             try:
