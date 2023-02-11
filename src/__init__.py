@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 import warnings
+import json
 
 from ruamel.yaml import YAML
 
@@ -14,15 +15,35 @@ DEFAULT_PHOTOS_DESTINATION = "photos"
 DEFAULT_RETRY_LOGIN_INTERVAL_SEC = 600  # 10 minutes
 DEFAULT_SYNC_INTERVAL_SEC = 1800  # 30 minutes
 DEFAULT_CONFIG_FILE_NAME = "config.yaml"
+DEFAULT_PHOTO_JSON_NAME = "photo.json"
 ENV_ICLOUD_PASSWORD_KEY = "ENV_ICLOUD_PASSWORD"
 DEFAULT_LOGGER_LEVEL = "info"
 DEFAULT_LOG_FILE_NAME = "icloud.log"
 DEFAULT_CONFIG_FILE_PATH = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), DEFAULT_CONFIG_FILE_NAME
 )
+DEFAULT_PHOTO_JSON_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), DEFAULT_PHOTO_JSON_NAME
+)
 DEFAULT_COOKIE_DIRECTORY = "session_data"
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+
+def read_photo_data(json_path=DEFAULT_PHOTO_JSON_PATH):
+    """Read photo data"""
+    if not (json_path and os.path.exists(json_path)):
+        print(f"Photo data not found, make new.")
+        return {}
+    with open(file=json_path, encoding="utf-8") as json_file:
+        photo_data = json.load(json_file)
+    return photo_data
+
+
+def save_photo_data(photo_data, json_path=DEFAULT_PHOTO_JSON_PATH):
+    """Save photo data"""
+    with open(file=json_path, mode="w", encoding="utf-8") as json_file:
+        json.dump(photo_data, json_file)
 
 
 def read_config(config_path=DEFAULT_CONFIG_FILE_PATH):
@@ -149,5 +170,7 @@ def get_logger():
 
 
 LOGGER = get_logger()
-UID = get_uid_config(config=read_config())
-GID = get_gid_config(config=read_config())
+CONFIG = read_config()
+PHOTO_DATA = read_photo_data()
+UID = get_uid_config(CONFIG)
+GID = get_gid_config(CONFIG)
