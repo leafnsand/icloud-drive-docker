@@ -1,4 +1,4 @@
-lns-icloudpy==0.0.1
+lns-icloudpy==0.0.2
 ruamel.yaml==0.16.12
 python-magic==0.4.27
 tzlocal==4.2
