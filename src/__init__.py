@@ -43,7 +43,7 @@ def read_photo_data(json_path=DEFAULT_PHOTO_JSON_PATH):
 def save_photo_data(photo_data, json_path=DEFAULT_PHOTO_JSON_PATH):
     """Save photo data"""
     with open(file=json_path, mode="w", encoding="utf-8") as json_file:
-        json.dump(photo_data, json_file)
+        json.dump(photo_data, json_file, indent=2)
 
 
 def read_config(config_path=DEFAULT_CONFIG_FILE_PATH):
