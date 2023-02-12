@@ -81,7 +81,8 @@ def process_photo(photo, file_size, destination_path, folder_structure):
             return False
         else:
             photo_path = photo_data["path"]
-            download_photo(photo, file_size, photo_path)
+            if download_photo(photo, file_size, photo_path):
+                PHOTO_DATA[photo_id] = photo_data
     else:
         duplicate_id = -1
         while True:
@@ -97,8 +98,8 @@ def process_photo(photo, file_size, destination_path, folder_structure):
                     LOGGER.warning(f"Duplicate file {photo_path}, find next valid path ...")
                     duplicate_id = duplicate_id + 1
             else:
-                PHOTO_DATA[photo_id] = {"path":photo_path, "size": photo_size, "checksum": photo_checksum}
-                download_photo(photo, file_size, photo_path)
+                if download_photo(photo, file_size, photo_path):
+                    PHOTO_DATA[photo_id] = {"path":photo_path, "size": photo_size, "checksum": photo_checksum}
     return True
 
 
