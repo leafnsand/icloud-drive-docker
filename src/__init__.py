@@ -140,7 +140,7 @@ class ColorfulConsoleFormatter(logging.Formatter):
 def get_logger():
     """Return logger."""
     logger = logging.getLogger()
-    logger_config = get_logger_config(config=read_config())
+    logger_config = get_logger_config(config=CONFIG)
     if logger_config:
         level_name = logging.getLevelName(level=logger_config["level"].upper())
         logger.setLevel(level=level_name)
@@ -169,8 +169,8 @@ def get_logger():
     return logger
 
 
-LOGGER = get_logger()
 CONFIG = read_config()
+LOGGER = get_logger()
 PHOTO_DATA = read_photo_data()
 UID = get_uid_config(CONFIG)
 GID = get_gid_config(CONFIG)
