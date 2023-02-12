@@ -7,7 +7,7 @@ import time
 
 from icloudpy import exceptions
 
-from src import LOGGER, UID, GID, config_parser
+from src import LOGGER, PHOTO_DATA, UID, GID, config_parser, save_photo_data
 
 from tzlocal import get_localzone
 
@@ -22,7 +22,7 @@ def photo_wanted(photo, extensions):
     return False
 
 
-def generate_file_name(photo, file_size, destination_path, folder_structure):
+def generate_file_name(photo, file_size, destination_path, folder_structure, duplicate_id=-1):
     """Generate full path to file."""
     try:
         filedate = photo.created.astimezone(get_localzone())
@@ -36,51 +36,13 @@ def generate_file_name(photo, file_size, destination_path, folder_structure):
         os.makedirs(folderpath)
         os.chown(folderpath, UID, GID)
     name, extension = photo.filename.rsplit(".", 1)
-    filename = photo.filename if file_size == "original" else f'{"_".join([name, file_size])}.{extension}'
+    if duplicate_id == -1:
+        filename = photo.filename if file_size == "original" else f'{"_".join([name, file_size])}.{extension}'
+    else:
+        filename = f'{"_".join([name, duplicate_id])}.{extension}' if file_size == "original" else f'{"_".join([name, file_size, duplicate_id])}.{extension}'
     file_path = os.path.join(folderpath, filename)
-    
-    for i in range(100):
-        if os.path.isfile(file_path):
-            filename = f'{name}_{i}.{extension}' if file_size == "original" else f'{"_".join([name, file_size, i])}.{extension}'
-            file_path = os.path.join(folderpath, filename)
-        else:
-            break
-            
-    if os.path.isfile(file_path):
-        LOGGER.error(f"Failed to generate file name, too many duplicated, will overwrite this ({file_path})")
 
     return file_path
-
-
-def photo_exists(photo, file_size, local_path):
-    """Check if photo exist locally."""
-    if photo and local_path and os.path.isfile(local_path):
-        local_size = os.path.getsize(local_path)
-        remote_size = int(photo.versions[file_size]["size"])
-        if local_size == remote_size:
-            LOGGER.debug(f"No changes detected. Skipping the file {local_path} ...")
-            if not os.path.exist(local_path + ".icloud"):
-                save_photo_metadata(photo, local_path)
-            return True
-        else:
-            if os.path.isfile(local_path + ".icloud"):
-                try:
-                    with open(local_path + ".icloud", "r") as local_metadata:
-                        local_id = local_metadata.read()
-                except:
-                    LOGGER.error(f"Failed to read photo metadata {local_path}")
-                    local_id = "invalid"
-                    
-                if local_id == photo.id:
-                    LOGGER.debug(
-                        f"Change detected: local_file_size is {local_size} and remote_file_size is {remote_size}."
-                    )
-                else:
-                    LOGGER.warning(f"Duplicated path {local_path}")
-                    return True
-            else:
-                LOGGER.debug(f"Metadata not exist {local_path}.")
-        return False
 
 
 def download_photo(photo, file_size, destination_path):
@@ -104,29 +66,39 @@ def download_photo(photo, file_size, destination_path):
     return True
 
 
-def save_photo_metadata(photo, destination_path):
-    try:
-        with open(destination_path + ".icloud", "w") as file:
-            file.write(photo.id)
-        os.chown(destination_path + ".icloud", UID, GID)
-    except:
-        LOGGER.error(f"Failed to save metadata {destination_path}")
-
-
 def process_photo(photo, file_size, destination_path, folder_structure):
     """Process photo details."""
-    photo_path = generate_file_name(
-        photo=photo, file_size=file_size, destination_path=destination_path, folder_structure=folder_structure
-    )
     if file_size not in photo.versions:
-        LOGGER.warning(
-            f"File size {file_size} not found on server. Skipping the photo {photo_path} ..."
-        )
+        LOGGER.warning(f"File size {file_size} not found on server. Skipping the photo {photo_path} ...")
         return False
-    if photo_exists(photo, file_size, photo_path):
-        return False
-    if download_photo(photo, file_size, photo_path):
-        save_photo_metadata(photo, photo_path)
+    photo_id = photo.id
+    photo_size = int(photo.versions[file_size]["size"])
+    photo_checksum = photo.versions[file_size]["checksum"]
+    if photo_id in PHOTO_DATA:
+        photo_data = PHOTO_DATA[photo_id]
+        if photo_data["size"] == photo_size and photo_data["checksum"] == photo_checksum:
+            LOGGER.debug(f"No changes detected. Skipping the file {photo_data['path']} ...")
+            return False
+        else:
+            photo_path = photo_data["path"]
+            download_photo(photo, file_size, photo_path)
+    else:
+        duplicate_id = -1
+        while True:
+            photo_path = generate_file_name(
+                photo=photo, file_size=file_size, destination_path=destination_path, folder_structure=folder_structure, duplicate_id=duplicate_id
+            )
+            if os.path.isfile(photo_path):
+                if os.path.getsize(photo_path) == photo_size:
+                    LOGGER.debug(f"No changes detected. Skipping the file {photo_path} ...")
+                    PHOTO_DATA[photo_id] = {"path":photo_path, "size": photo_size, "checksum": photo_checksum}
+                    return False
+                else:
+                    LOGGER.warning(f"Duplicate file {photo_path}, find next valid path ...")
+                    duplicate_id = duplicate_id + 1
+            else:
+                PHOTO_DATA[photo_id] = {"path":photo_path, "size": photo_size, "checksum": photo_checksum}
+                download_photo(photo, file_size, photo_path)
     return True
 
 
@@ -136,10 +108,15 @@ def sync_album(album, destination_path, folder_structure, file_sizes, extensions
         return None
     os.makedirs(destination_path, exist_ok=True)
     os.chown(destination_path, UID, GID)
+    process_photo_count = 0
     for photo in album:
         if photo_wanted(photo, extensions):
             for file_size in file_sizes:
                 process_photo(photo, file_size, destination_path, folder_structure)
+                process_photo_count = process_photo_count + 1
+                if process_photo_count >= 100:
+                    save_photo_data(PHOTO_DATA)
+                    process_photo_count = 0
         else:
             LOGGER.debug(f"Skipping the unwanted photo {photo.filename}.")
     for subalbum in album.subalbums:
@@ -174,6 +151,7 @@ def sync_photos(config, photos):
             file_sizes=filters["file_sizes"],
             extensions=filters["extensions"],
         )
+    save_photo_data(PHOTO_DATA)
 
 
 # def enable_debug():
