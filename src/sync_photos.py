@@ -37,9 +37,9 @@ def generate_file_name(photo, file_size, destination_path, folder_structure, dup
         os.chown(folderpath, UID, GID)
     name, extension = photo.filename.rsplit(".", 1)
     if duplicate_id == -1:
-        filename = photo.filename if file_size == "original" else f'{"_".join([name, file_size])}.{extension}'
+        filename = photo.filename if file_size == "original" else f"{name}_{file_size}.{extension}"
     else:
-        filename = f'{"_".join([name, duplicate_id])}.{extension}' if file_size == "original" else f'{"_".join([name, file_size, duplicate_id])}.{extension}'
+        filename = f"{name}_{duplicate_id}.{extension}" if file_size == "original" else f"{name}_{file_size}_{duplicate_id}.{extension}"
     file_path = os.path.join(folderpath, filename)
 
     return file_path
