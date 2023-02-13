@@ -135,6 +135,7 @@ def sync_photos(config, photos):
     destination_path = config_parser.prepare_photos_destination(config=config)
     filters = config_parser.get_photos_filters(config=config)
     folder_structure = config_parser.get_photos_folder_structure(config=config)
+    remove_obsolete = config_parser.get_photos_remove_obsolete(config=config)
     if filters["albums"]:
         for album in iter(filters["albums"]):
             sync_album(
@@ -152,8 +153,20 @@ def sync_photos(config, photos):
             file_sizes=filters["file_sizes"],
             extensions=filters["extensions"],
         )
+    remove_obsolete_photos(photo.deleted, dry=not remove_obsolete)
     save_photo_data(PHOTO_DATA)
-
+    
+    
+def remove_obsolete_photos(deleted_album, dry):
+    """Remove obsolete photos."""
+    for photo in deleted_album:
+        if photo.id in PHOTO_DATA:
+            photo_data = PHOTO_DATA[photo.id]
+            if dry:
+                LOGGER.info(f"Delete {photo_data['path']} ...")
+            else:
+                if os.path.isfile(photo_data['path']):
+                    os.remove(photo_data['path'])
 
 # def enable_debug():
 #     import contextlib
