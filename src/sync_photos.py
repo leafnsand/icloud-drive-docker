@@ -153,7 +153,7 @@ def sync_photos(config, photos):
             file_sizes=filters["file_sizes"],
             extensions=filters["extensions"],
         )
-    remove_obsolete_photos(photo.deleted, dry=not remove_obsolete)
+    remove_obsolete_photos(photos.deleted, dry=not remove_obsolete)
     save_photo_data(PHOTO_DATA)
     
     
