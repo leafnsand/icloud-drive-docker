@@ -165,6 +165,7 @@ def remove_obsolete_photos(deleted_album, dry):
             if dry:
                 LOGGER.info(f"Delete {photo_data['path']} ...")
             else:
+                del PHOTO_DATA[photo.id]
                 if os.path.isfile(photo_data['path']):
                     os.remove(photo_data['path'])
 
