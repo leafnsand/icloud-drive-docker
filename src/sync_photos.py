@@ -69,7 +69,6 @@ def download_photo(photo, file_size, destination_path):
 def process_photo(photo, file_size, destination_path, folder_structure):
     """Process photo details."""
     if file_size not in photo.versions:
-        LOGGER.warning(f"File size {file_size} not found on server. Skipping the photo {photo.filename} ...")
         return False
     photo_id = photo.id
     photo_size = int(photo.versions[file_size]["size"])
