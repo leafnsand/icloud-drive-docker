@@ -84,7 +84,7 @@ def download_photo(photo, file_size, destination_path):
     """Download photo from server."""
     if not (photo and file_size and destination_path):
         return False
-    LOGGER.info(f"Downloading {destination_path} ...")
+    LOGGER.info(f"Downloading ({file_size}) {destination_path} ...")
     try:
         download = photo.download(file_size)
         with open(destination_path, "wb") as file_out:
@@ -108,15 +108,15 @@ def process_photo(photo, file_size, destination_path, folder_structure):
     photo_id = photo.id
     photo_size = int(photo.versions[file_size]["size"])
     photo_checksum = photo.versions[file_size]["checksum"]
-    if photo_id in PHOTO_DATA:
-        photo_data = PHOTO_DATA[photo_id]
+    if photo_id in PHOTO_DATA[file_size]:
+        photo_data = PHOTO_DATA[file_size][photo_id]
         if photo_data["size"] == photo_size and photo_data["checksum"] == photo_checksum:
             LOGGER.debug(f"No changes detected. Skipping the file {photo_data['path']} ...")
             return False
         else:
             photo_path = photo_data["path"]
             if download_photo(photo, file_size, photo_path):
-                PHOTO_DATA[photo_id] = photo_data
+                PHOTO_DATA[file_size][photo_id] = photo_data
     else:
         duplicate_id = -1
         while True:
@@ -126,14 +126,14 @@ def process_photo(photo, file_size, destination_path, folder_structure):
             if os.path.isfile(photo_path):
                 if os.path.getsize(photo_path) == photo_size:
                     LOGGER.debug(f"No changes detected. Skipping the file {photo_path} ...")
-                    PHOTO_DATA[photo_id] = {"path":photo_path, "size": photo_size, "checksum": photo_checksum}
+                    PHOTO_DATA[file_size][photo_id] = {"path":photo_path, "size": photo_size, "checksum": photo_checksum}
                     return False
                 else:
                     LOGGER.warning(f"Duplicate file {photo_path}, find next valid path ...")
                     duplicate_id = duplicate_id + 1
             else:
                 if download_photo(photo, file_size, photo_path):
-                    PHOTO_DATA[photo_id] = {"path":photo_path, "size": photo_size, "checksum": photo_checksum}
+                    PHOTO_DATA[file_size][photo_id] = {"path":photo_path, "size": photo_size, "checksum": photo_checksum}
     return True
 
 
@@ -147,6 +147,8 @@ def sync_album(album, destination_path, folder_structure, file_sizes, extensions
     for photo in album:
         if photo_wanted(photo, extensions):
             for file_size in file_sizes:
+                if not PHOTO_DATA.has_key(file_size):
+                    PHOTO_DATA[file_size] = {}
                 process_photo(photo, file_size, destination_path, folder_structure)
                 process_photo_count = process_photo_count + 1
                 if process_photo_count >= 100:
@@ -187,21 +189,22 @@ def sync_photos(config, photos):
             file_sizes=filters["file_sizes"],
             extensions=filters["extensions"],
         )
-    remove_obsolete_photos(photos.deleted, dry=not remove_obsolete)
+    remove_obsolete_photos(photos.deleted, filters["file_sizes"], dry=not remove_obsolete)
     save_photo_data(PHOTO_DATA)
     
     
-def remove_obsolete_photos(deleted_album, dry):
+def remove_obsolete_photos(deleted_album, file_sizes, dry):
     """Remove obsolete photos."""
     for photo in deleted_album:
-        if photo.id in PHOTO_DATA:
-            photo_data = PHOTO_DATA[photo.id]
-            if dry:
-                LOGGER.info(f"Delete {photo_data['path']} ...")
-            else:
-                del PHOTO_DATA[photo.id]
-                if os.path.isfile(photo_data['path']):
-                    os.remove(photo_data['path'])
+        for file_size in file_sizes:
+            if photo.id in PHOTO_DATA[file_size]:
+                photo_data = PHOTO_DATA[file_size][photo.id]
+                if dry:
+                    LOGGER.info(f"Delete {photo_data['path']} ...")
+                else:
+                    del PHOTO_DATA[file_size][photo.id]
+                    if os.path.isfile(photo_data['path']):
+                        os.remove(photo_data['path'])
 
 # def enable_debug():
 #     import contextlib
