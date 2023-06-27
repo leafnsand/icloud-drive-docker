@@ -12,6 +12,39 @@ from src import LOGGER, PHOTO_DATA, UID, GID, config_parser, save_photo_data
 from tzlocal import get_localzone
 
 
+EXT_LOOKUP_TABLE = {
+    'public.png': 'PNG',
+    'public.mpeg-4': 'MP4',
+    'public.jpeg': 'JPEG',
+    'com.apple.quicktime-movie': 'MOV',
+    'public.heic': 'HEIC',
+    'com.sony.arw-raw-image': 'ARW',
+    'org.webmproject.webp': 'WEBP',
+    'com.compuserve.gif': 'GIF',
+    'com.adobe.raw-image': 'DNG',
+    'public.tiff': 'TIFF',
+    'public.jpeg-2000': 'JP2',
+    'com.truevision.tga-image': 'TGA',
+    'com.sgi.sgi-image': 'SGI',
+    'com.adobe.photoshop-image': 'PSD',
+    'public.pbm': 'PBM',
+    'public.heif': 'HEIF',
+    'com.microsoft.bmp': 'BMP',
+    'public.mpeg': 'MPG',
+    'com.apple.m4v-video': 'M4V',
+    'public.3gpp': '3GP',
+    'public.mpeg-2-video': 'M2V',
+    'com.fuji.raw-image': 'RAF',
+    'com.canon.cr2-raw-image': 'CR2',
+    'com.panasonic.rw2-raw-image': 'RW2',
+    'com.nikon.nrw-raw-image': 'NRW',
+    'com.pentax.raw-image': 'PEF',
+    'com.nikon.raw-image': 'NEF',
+    'com.olympus.raw-image': 'ORF',
+    'public.avi': 'AVI'
+}
+
+
 def photo_wanted(photo, extensions):
     """Check if photo is wanted based on extension."""
     if not extensions or len(extensions) == 0:
@@ -36,10 +69,12 @@ def generate_file_name(photo, file_size, destination_path, folder_structure, dup
         os.makedirs(folderpath)
         os.chown(folderpath, UID, GID)
     name, extension = photo.filename.rsplit(".", 1)
+    if file_size == "original_alt":
+        extension = EXT_LOOKUP_TABLE.get(photo.versions[file_size]['type'], 'JPEG')
     if duplicate_id == -1:
-        filename = photo.filename if file_size == "original" else f"{name}_{file_size}.{extension}"
+        filename = photo.filename if file_size in [ "original", "original_alt" ] else f"{name}_{file_size}.{extension}"
     else:
-        filename = f"{name}_{duplicate_id}.{extension}" if file_size == "original" else f"{name}_{file_size}_{duplicate_id}.{extension}"
+        filename = f"{name}_{duplicate_id}.{extension}" if file_size in [ "original", "original_alt" ] else f"{name}_{file_size}_{duplicate_id}.{extension}"
     file_path = os.path.join(folderpath, filename)
 
     return file_path
