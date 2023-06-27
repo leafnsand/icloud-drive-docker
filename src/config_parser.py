@@ -270,8 +270,8 @@ def get_photos_remove_obsolete(config):
 
 def get_photos_filters(config):
     """Return photos filters from config."""
-    photos_filters = {"albums": None, "file_sizes": ["original"], "extensions": None}
-    valid_file_sizes = ["original", "medium", "thumb"]
+    photos_filters = {"albums": None, "file_sizes": ["original", "original_alt"], "extensions": None}
+    valid_file_sizes = ["original", "original_alt"]
     config_path = ["photos", "filters"]
     if not traverse_config_path(config=config, config_path=config_path):
         LOGGER.warning(
