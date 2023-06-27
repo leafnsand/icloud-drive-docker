@@ -72,7 +72,7 @@ def generate_file_name(photo, file_size, destination_path, folder_structure, dup
     if file_size == "original_alt":
         extension = EXT_LOOKUP_TABLE.get(photo.versions[file_size]['type'], 'JPEG')
     if duplicate_id == -1:
-        filename = photo.filename if file_size in [ "original", "original_alt" ] else f"{name}_{file_size}.{extension}"
+        filename = f"{name}.{extension}" if file_size in [ "original", "original_alt" ] else f"{name}_{file_size}.{extension}"
     else:
         filename = f"{name}_{duplicate_id}.{extension}" if file_size in [ "original", "original_alt" ] else f"{name}_{file_size}_{duplicate_id}.{extension}"
     file_path = os.path.join(folderpath, filename)
