@@ -147,7 +147,7 @@ def sync_album(album, destination_path, folder_structure, file_sizes, extensions
     for photo in album:
         if photo_wanted(photo, extensions):
             for file_size in file_sizes:
-                if not PHOTO_DATA.has_key(file_size):
+                if file_size not in PHOTO_DATA:
                     PHOTO_DATA[file_size] = {}
                 process_photo(photo, file_size, destination_path, folder_structure)
                 process_photo_count = process_photo_count + 1
@@ -197,6 +197,8 @@ def remove_obsolete_photos(deleted_album, file_sizes, dry):
     """Remove obsolete photos."""
     for photo in deleted_album:
         for file_size in file_sizes:
+            if file_size not in PHOTO_DATA:
+                PHOTO_DATA[file_size] = {}
             if photo.id in PHOTO_DATA[file_size]:
                 photo_data = PHOTO_DATA[file_size][photo.id]
                 if dry:
